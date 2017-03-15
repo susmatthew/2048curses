@@ -6,6 +6,15 @@
 
 #define GRIDSIZE 4
 
+// keys
+#define UP		119
+#define LEFT	97
+#define DOWN 	115
+#define RIGHT	100
+#define NOKEY	-1
+#define HINT	104
+#define SAVE	112
+
 //macros
 #define max(A,B) ((A)>(B) ? (A) : (B))
 
@@ -20,7 +29,7 @@ typedef struct {
 
 extern boards board[100]; 	// all the boards, ever.
 
-typedef enum {attract=0,begin,add,check,move} states;
+typedef enum {newturn,moving,done} states;
 typedef enum {human=0,computer} players;
 
 extern states state;
@@ -28,7 +37,6 @@ extern players player;
 
 boards add_random (boards);
 bool check_move (boards);
-sub_boards move (sub_boards , uint8_t (*comp)(sub_boards*, uint8_t));
 uint8_t mv_left (sub_boards *, uint8_t );
 uint8_t mv_right (sub_boards *, uint8_t );
 uint32_t cmb_left (sub_boards *, uint8_t );

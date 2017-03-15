@@ -6,6 +6,8 @@
 
 bool display_score (uint32_t score) {
 
+
+	return TRUE;
 }
 
 void init_display (void) {

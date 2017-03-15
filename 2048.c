@@ -1,78 +1,82 @@
 /* matthew sherwood, suspect device engineering. 
 // 2048 in ncurses, with some speculative features, for fun
 
- 3-6-17 -- started.
-// make a board, wasd around.
 
 */
 
 #include "2048.h"
+#include "display.h"
 
-states state=attract;
+states state[100]={0}; // adding
 players player=human;
 clock_t currTime;
-uint32_t time=0;
-uint8_t maxx,maxy,yOff;
+uint32_t locTime=0;
+uint8_t maxX,maxY,yOff,current=0; //board
+boards *cBoard=&board;
+
 
 int main (int argc, char *argv[]) {
-	int turn=0,c;
+	int c,move;
+	uint32_t turn=0;
 
 	init_display();
 
-	// get saved data
-	// init
-
 
 	while (1) {
-		
-		c=getch();
-		if (c!=cOld) yOff++;
-		if (yOff>20) yOff=0;
-		cOld=c;
+		// choose a board.
 
-		currTime=clock();
-		time = currTime/(CLOCKS_PER_SEC/100);
+		switch (state[current]) {
+			default:
+				break;
 
-		getmaxyx (stdscr,maxy,maxx);
-		if ((time%1000)==0) clear();
+			case (newturn):
+				add_random(*(cBoard+current));
+				if (check_move(board[current])) state[current]=moving;
+				else state[current]=done;
+				break;
 
-		mvprintw(y,x,"x:%i, y:%i",maxx,maxy);
-		mvprintw(1+yOff,0,"%d",c);
-		refresh();
-/*
-		// attract mode - options.
-		if (!state) {		
-			make_menu();
-			display();
-		} else {
-			// do the game.
+			case (moving):
+				c=getch();
+				if (!current && !player) move=c;
+				else move=get_RNN(current,*(cBoard+current));
+				do_move(move,c,*(cBoard+current));
+				break;
+
+			case (done):
+				c=getch();
+				if (current || player) score_RNN (*(cBoard+current));
+				else display_end(c);
+				break;
 		}
-*/
-
-		
-
-
-		// play
-
 	}
 
 
-	
+/*
+		currTime=clock();
+		locTime = currTime/(CLOCKS_PER_SEC/100);
 
+		getmaxyx (stdscr,maxY,maxX);
+		mvprintw(0,0,"x:%i, y:%i",maxX,maxY);
+		mvprintw(1+yOff,0,"%d",c);
+		refresh();
+*/
+	
 return 0;
 }
 
-boards add_random (boards inBoard) {
+
+
+void add_random (boards *inBoard) {
 	uint8_t total=0,x=0,y=0,randList[GRIDSIZE*GRIDSIZE]={0};
 	int random=0;
 
 	for (int i=0;i!=GRIDSIZE*GRIDSIZE;i++) {
 		x=i/4;
 		y=i%4;
-		if (inBoard[x][y]==0) randList[total++]=(x<<=4)|y;
+		if (inBoard->cell[x][y]==0) randList[total++]=(x<<=4)|y;
 	} 
 
-	if (!total) return inBoard;
+	if (!total) return 0;
 
 	random=rand();
 	random%=total;
@@ -83,36 +87,28 @@ boards add_random (boards inBoard) {
 	random=rand();
 	random%=2;
 
-	inBoard[x][y]=2+(random*2);
-	return inBoard;
+	inBoard->cell[x][y]=2+(random*2);
 }
 
 // checks a board. returns true if moves remain.
-bool check_move (boards inBoard) {
+//
+bool check_move (boards *inBoard) {
 	uint32_t test;
-	uint8_t poss=0;
+	uint8_t x=0,y=0;
 
 	for (int i=0;i!=GRIDSIZE*GRIDSIZE;i++) {
 		x=i/4;
 		y=i%4;
-		if ((test=inBoard[x][y])==0) return TRUE;
+		if ((test=inBoard->cell[x][y])==0) return TRUE;
 		if (x<3) {
-			if (inBoard[x+1][y]==test) return TRUE;
+			if (inBoard->cell[x+1][y]==test) return TRUE;
 		}
 		if (y<3) {
-			if (inBoard[x][y+1]==test) return TRUE;
+			if (inBoard->cell[x][y+1]==test) return TRUE;
 		}
 	}
 	return FALSE;
 }
-
-sub_boards move (sub_boards lBoard, uint8_t (*comp)(sub_boards *a, uint8_t width)) {
-
-	if (!((*comp)(lBoard,GRIDSIZE))) move(lBoard,(*comp));	//hate calling this with GRIDSIZE.
-
-return lBoard;
-}
-
 
 // moves sub_board left/up, returns 0 in process, 1 when done
 // 
@@ -133,6 +129,7 @@ uint8_t mv_left (sub_boards *a, uint8_t b) {
 }
 
 // moves sub_board right/down, returns 0 in process, 1 when done
+//
 uint8_t mv_right (sub_boards *a, uint8_t b) {
 	int8_t checked=b-1, from=-1;
 	while (checked>0) {
@@ -177,7 +174,7 @@ uint32_t cmb_right (sub_boards *a, uint8_t b) {
 	uint8_t checked=b-1;
 	while (checked>0) {
 		if (a->set[checked-1]==a->set[checked]) {
-			a->set[checked]*=2*;
+			a->set[checked]*=2;
 			score+=a->set[checked];
 			a->set[checked-1]=0;
 			checked--;
